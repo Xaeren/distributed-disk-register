@@ -15,14 +15,19 @@ public class DiskStorage {
 
     public DiskStorage(String nodeId) {
         this.storageDir = Paths.get("data", nodeId);
+
         try {
             Files.createDirectories(storageDir);
+            // Başlangıçta klasörü tarayıp index doldur
+            loadIndex();
         } catch (IOException e) {
             throw new RuntimeException("DiskStorage init failed", e);
         }
     }
 
-    // SET için: mesajı diske yaz
+    /**
+     * SET işlemi: Mesajı diske kaydeder
+     */
     public synchronized void save(ChatMessage msg) {
         try {
             Path file = storageDir.resolve(msg.getMessageId() + ".txt");
@@ -43,7 +48,9 @@ public class DiskStorage {
         }
     }
 
-    // GET için: mesajı diskten oku
+    /**
+     * GET işlemi: Mesajı diskten okur
+     */
     public synchronized String load(int messageId) {
         try {
             Path file = index.get(messageId);
@@ -56,7 +63,23 @@ public class DiskStorage {
         }
     }
 
+    /**
+     * Node'un diskinde kaç mesaj olduğunu döndürür
+     */
     public synchronized int messageCount() {
         return index.size();
+    }
+
+    /**
+     * Node başlatıldığında disk klasörünü tarayıp index'i doldurur
+     */
+    private void loadIndex() throws IOException {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(storageDir, "*.txt")) {
+            for (Path path : stream) {
+                String name = path.getFileName().toString();
+                int id = Integer.parseInt(name.replace(".txt", ""));
+                index.put(id, path);
+            }
+        }
     }
 }
